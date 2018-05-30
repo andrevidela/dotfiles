@@ -14,9 +14,10 @@ map <C-n> :NERDTreeToggle<CR>
 :set smartindent
 :set mouse=a
 :set laststatus=2
+:set statusline=%f 
 :set clipboard=unnamed
 :set showcmd
-:set backspace=eol,start
+:set backspace=eol,start,indent
 
 syntax on
 filetype on
