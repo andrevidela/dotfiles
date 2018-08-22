@@ -3,3 +3,6 @@
 --color-match=on_white
 --color-filename=red
 --color-lineno=magenta
+--ignore-dir=.tox
+--ignore-dir=.venv
+--ignore-dir=.stack-work

@@ -4,6 +4,7 @@ execute pathogen#infect()
 " enable nerdTree with CTRL-n
 map <C-n> :NERDTreeToggle<CR>
 
+
 " The usual
 :set expandtab
 :set tabstop=4
@@ -18,6 +19,7 @@ map <C-n> :NERDTreeToggle<CR>
 :set clipboard=unnamed
 :set showcmd
 :set backspace=eol,start,indent
+:set ruler
 
 syntax on
 filetype on
@@ -38,3 +40,9 @@ set directory=~/.vimFiles/swapfiles//
 
 " shortcut to enable debug in python
 :imap <C-b> import ipdb<CR>ipdb.set_trace()
+
+" ghc-mod
+map <silent> tw :GhcModTypeInsert<CR>
+map <silent> ts :GhcModSplitFunCase<CR>
+map <silent> tq :GhcModType<CR>
+map <silent> te :GhcModTypeClear<CR>
