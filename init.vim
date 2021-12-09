@@ -1,4 +1,3 @@
-
 let data_dir = has('nvim') ? stdpath('data') . '/site' : '~/.vim'
 if empty(glob(data_dir . '/autoload/plug.vim'))
   silent execute '!curl -fLo '.data_dir.'/autoload/plug.vim --create-dirs  https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'
@@ -7,9 +6,11 @@ endif
 
 call plug#begin(has('nvim') ? stdpath('data') . '/plugged' : '~/.vim/plugged')
 
-Plug 'https://github.com/edwinb/idris2-vim.git'
+" Plug 'https://github.com/edwinb/idris2-vim.git'
 Plug 'https://github.com/scalameta/nvim-metals.git'
 Plug 'neovim/nvim-lspconfig'
+Plug 'ShinKage/idris2-nvim'
+Plug 'MunifTanjim/nui.nvim'
 Plug 'nvim-lua/plenary.nvim'
 Plug 'kabouzeid/nvim-lspinstall'
 Plug 'autozimu/LanguageClient-neovim', {
@@ -22,33 +23,6 @@ call plug#end()
 lua << EOF
 vim.lsp.set_log_level("debug")
 
-local lspconfig = require('lspconfig')
-local configs = require('lspconfig/configs')
-if not lspconfig.idris2_lsp then
-  configs.idris2_lsp = {
-    default_config = {
-      cmd = {'idris2-lsp'}; -- if not available in PATH, provide the absolute path
-      filetypes = {'idris2'};
-      on_new_config = function(new_config, new_root_dir)
-        new_config.cmd = {'idris2-lsp'}
-        new_config.capabilities['workspace']['semanticTokens'] = {refreshSupport = true}
-      end;
-      root_dir = function(fname)
-        local scandir = require('plenary.scandir')
-        local find_ipkg_ancestor = function(fname)
-          return lspconfig.util.search_ancestors(fname, function(path)
-            local res = scandir.scan_dir(path, {depth=1; search_pattern='.+%.ipkg'})
-            if not vim.tbl_isempty(res) then
-              return path
-            end
-          end)
-        end
-        return find_ipkg_ancestor(fname) or lspconfig.util.find_git_ancestor(fname) or vim.loop.os_homedir()
-      end;
-      settings = {};
-    };
-  }
-end
 
 -- Use an on_attach function to only map the following keys
 -- after the language server attaches to the current buffer
@@ -83,64 +57,37 @@ local on_attach = function(client, bufnr)
 
 end
 
--- Flag to enable semantic highlightning on start, if false you have to issue a first command manually
-local autostart_semantic_highlightning = true
-lspconfig.idris2_lsp.setup {
-  on_init = custom_init,
-  on_attach = function(client)
-    if autostart_semantic_highlightning then
-      vim.lsp.buf_request(0, 'textDocument/semanticTokens/full',
-        { textDocument = vim.lsp.util.make_text_document_params() }, nil)
-    end
-    on_attach(client) -- remove this line if you don't have a customized attach function
-  end,
-  autostart = true,
-  handlers = {
-    ['workspace/semanticTokens/refresh'] = function(err, method, params, client_id, bufnr, config)
-      if autostart_semantic_highlightning then
-        vim.lsp.buf_request(0, 'textDocument/semanticTokens/full',
-          { textDocument = vim.lsp.util.make_text_document_params() }, nil)
-      end
-      return vim.NIL
+local idris2 = require('idris2')
+idris2.setup({
+  server = {
+    on_attach = function(...)
+      vim.cmd [[nnoremap <LocalLeader>ics <Cmd>lua require('idris2.code_action').case_split()<CR>]]
+      vim.cmd [[nnoremap <LocalLeader>imc <Cmd>lua require('idris2.code_action').make_case()<CR>]]
+      vim.cmd [[nnoremap <LocalLeader>imw <Cmd>lua require('idris2.code_action').make_with()<CR>]]
+      vim.cmd [[nnoremap <LocalLeader>iml <Cmd>lua require('idris2.code_action').make_lemma()<CR>]]
+      vim.cmd [[nnoremap <LocalLeader>iac <Cmd>lua require('idris2.code_action').add_clause()<CR>]]
+      vim.cmd [[nnoremap <LocalLeader>ies <Cmd>lua require('idris2.code_action').expr_search()<CR>]]
+      vim.cmd [[nnoremap <LocalLeader>igd <Cmd>lua require('idris2.code_action').generate_def()<CR>]]
+      vim.cmd [[nnoremap <LocalLeader>irh <Cmd>lua require('idris2.code_action').refine_hole()<CR>]]
+      vim.cmd [[nnoremap <LocalLeader>isp <Cmd>lua require('idris2.hover').open_split()<CR>]]
+      vim.cmd [[nnoremap <LocalLeader>icp <Cmd>lua require('idris2.hover').close_split()<CR>]]
+      vim.cmd [[nnoremap ]m <Cmd>lua require('idris2.metavars').goto_next()<CR>]]
+      vim.cmd [[nnoremap [m <Cmd>lua require('idris2.metavars').goto_prev()<CR>]]
+      on_attach(...)
     end,
-    ['textDocument/semanticTokens/full'] = function(err, method, result, client_id, bufnr, config)
-      -- temporary handler until native support lands
-      local client = vim.lsp.get_client_by_id(client_id)
-      local legend = client.server_capabilities.semanticTokensProvider.legend
-      local token_types = legend.tokenTypes
-      local data = result.data
-
-      local ns = vim.api.nvim_create_namespace('nvim-lsp-semantic')
-      vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
-      local tokens = {}
-      local prev_line, prev_start = nil, 0
-      for i = 1, #data, 5 do
-        local delta_line = data[i]
-        prev_line = prev_line and prev_line + delta_line or delta_line
-        local delta_start = data[i + 1]
-        prev_start = delta_line == 0 and prev_start + delta_start or delta_start
-        local token_type = token_types[data[i + 3] + 1]
-        local line = vim.api.nvim_buf_get_lines(bufnr, prev_line, prev_line + 1, false)[1]
-        local byte_start = vim.str_byteindex(line, prev_start)
-        local byte_end = vim.str_byteindex(line, prev_start + data[i + 2])
-        vim.api.nvim_buf_add_highlight(bufnr, ns, 'LspSemantic_' .. token_type, prev_line, byte_start, byte_end)
-      end
-    end
-  },
-}
+    autostart = true,
+  }
+})
 
 -- Set here your preferred colors for semantic values
-vim.cmd [[highlight link LspSemantic_type Include]]   -- Type constructors
-vim.cmd [[highlight link LspSemantic_function Identifier]] -- Functions names
-vim.cmd [[highlight link LspSemantic_enumMember Number]]   -- Data constructors
-vim.cmd [[highlight LspSemantic_variable guifg=gray]] -- Bound variables
-vim.cmd [[highlight link LspSemantic_keyword Structure]]  -- Keywords
-vim.cmd [[highlight link LspSemantic_namespace Identifier]] -- Explicit namespaces
-vim.cmd [[highlight link LspSemantic_postulate Define]] -- Postulates
-vim.cmd [[highlight link LspSemantic_module Identifier]] -- Module identifiers
-
--- Add the following command to a mapping if you want to send a manual request for semantic highlight
--- :lua vim.lsp.buf_request(0, 'textDocument/semanticTokens/full', {textDocument = vim.lsp.util.make_text_document_params()}, nil)
+-- vim.cmd [[highlight link LspSemantic_type Include]]   -- Type constructors
+-- vim.cmd [[highlight link LspSemantic_function Identifier]] -- Functions names
+-- vim.cmd [[highlight link LspSemantic_enumMember Number]]   -- Data constructors
+-- vim.cmd [[highlight LspSemantic_variable guifg=gray]] -- Bound variables
+-- vim.cmd [[highlight link LspSemantic_keyword Structure]]  -- Keywords
+-- vim.cmd [[highlight link LspSemantic_namespace Identifier]] -- Explicit namespaces
+-- vim.cmd [[highlight link LspSemantic_postulate Define]] -- Postulates
+-- vim.cmd [[highlight link LspSemantic_module Identifier]] -- Module identifiers
 EOF
 
 
@@ -148,4 +95,3 @@ EOF
 :noh
 :set number
 autocmd BufWritePre * :%s/\s\+$//e
-
