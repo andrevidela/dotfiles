@@ -7,6 +7,7 @@ endif
 call plug#begin(has('nvim') ? stdpath('data') . '/plugged' : '~/.vim/plugged')
 
 " Plug 'https://github.com/edwinb/idris2-vim.git'
+" LSP things
 Plug 'https://github.com/scalameta/nvim-metals.git'
 Plug 'neovim/nvim-lspconfig'
 Plug 'ShinKage/idris2-nvim'
@@ -18,6 +19,17 @@ Plug 'autozimu/LanguageClient-neovim', {
     \ 'do': 'bash install.sh'
     \ }
 
+" Theming
+Plug 'folke/lsp-colors.nvim'
+Plug 'haishanh/night-owl.vim'
+Plug 'ayu-theme/ayu-vim'
+
+" Unicode shortcuts
+Plug 'arthurxavierx/vim-unicoder'
+
+" telescope
+Plug 'nvim-lua/plenary.nvim'
+Plug 'nvim-telescope/telescope.nvim'
 
 call plug#end()
 lua << EOF
@@ -73,9 +85,13 @@ idris2.setup({
       vim.cmd [[nnoremap <LocalLeader>icp <Cmd>lua require('idris2.hover').close_split()<CR>]]
       vim.cmd [[nnoremap ]m <Cmd>lua require('idris2.metavars').goto_next()<CR>]]
       vim.cmd [[nnoremap [m <Cmd>lua require('idris2.metavars').goto_prev()<CR>]]
+      vim.cmd [[nnoremap <LocalLeader>ibm <Cmd>lua require('idris2.browse').browse({popup=true})<CR>]]
       on_attach(...)
     end,
     autostart = true,
+    init_options = {
+       logFile = "~/.cache/idris2-lsp/server.log",
+    },
   }
 })
 
@@ -95,3 +111,11 @@ EOF
 :noh
 :set number
 autocmd BufWritePre * :%s/\s\+$//e
+
+if (has("termguicolors"))
+ set termguicolors
+endif
+syntax enable
+
+let ayucolor="dark"   " for dark version of theme
+colorscheme ayu
