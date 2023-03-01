@@ -33,6 +33,8 @@ Plug 'arthurxavierx/vim-unicoder'
 Plug 'nvim-lua/plenary.nvim'
 Plug 'nvim-telescope/telescope.nvim'
 
+" box drawing
+Plug 'jbyuki/venn.nvim'
 nnoremap <leader>ff <cmd>Telescope find_files<cr>
 
 
@@ -119,3 +121,5 @@ syntax enable
 
 let ayucolor="dark"   " for dark version of theme
 colorscheme ayu
+
+

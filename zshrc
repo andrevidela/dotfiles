@@ -14,3 +14,8 @@ fi
 
 export VISUAL=vim
 export EDITOR="$VISUAL"
+
+eval "$(direnv hook zsh)"
+
+[ -f "/home/andre/.ghcup/env" ] && source "/home/andre/.ghcup/env" # ghcup-env
+alias vim=nvim
