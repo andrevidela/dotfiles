@@ -19,3 +19,8 @@ eval "$(direnv hook zsh)"
 
 [ -f "/home/andre/.ghcup/env" ] && source "/home/andre/.ghcup/env" # ghcup-env
 alias vim=nvim
+
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+  alias pbcopy='xclip -selection clipboard'
+  alias pbpaste='xclip -selection clipboard -o'
+fi
